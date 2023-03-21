@@ -1,0 +1,18 @@
+title: Aarhus University Template
+author: David Liao
+version: 0.1.1
+quarto-required: ">=1.2.280"
+contributes:
+  formats:
+    revealjs:
+      slide-number: c
+      highlight-style: github-dark
+      theme: aarhus.scss
+      footer: |
+        <a href="https://davidycliao.github.io">DAVID LIAO</a>
+        |
+        <a href="https://projects.au.dk/deminova-lab/about-deminova">AARHUS UNIVERSITY</a>   
+      logo: aarhus.png
+      include-in-header:
+        - text: |
+            <link rel = "shortcut icon" href = "" />
