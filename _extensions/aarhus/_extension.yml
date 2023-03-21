@@ -9,7 +9,10 @@ contributes:
       highlight-style: github-dark
       theme: aarhus.scss
       footer: |
+        |
         <a href="https://davidycliao.github.io">DAVID LIAO</a>
+        |
+        <a href="https://epsanet.org">EPSA</a>   
         |
         <a href="https://projects.au.dk/deminova-lab/about-deminova">AARHUS UNIVERSITY</a>   
       logo: aarhus.png
