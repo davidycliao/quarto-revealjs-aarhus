@@ -1,7 +1,7 @@
 ## `Quarto` `Reveal.js` Template - [`Aarhus University`](https://international.au.dk)
 
 
-This is a repository for the `Quarto` `revealjs` template customized for `Aarhus University`blue color scheme, and adaptation of [`quarto-revealjs-coeos`](https://github.com/mcanouil/quarto-revealjs-coeos). 
+This is a repository for the `Quarto` `revealjs` [template example]() customized for `Aarhus University`blue color scheme, and adaptation of [`quarto-revealjs-coeos`](https://github.com/mcanouil/quarto-revealjs-coeos). 
 
 ![](aarhus-template.png)
 
