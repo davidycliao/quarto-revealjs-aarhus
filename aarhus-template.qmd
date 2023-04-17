@@ -1,8 +1,8 @@
 ---
-title: "Measuring Party Cohesion on Parliamentary Question Keywords"
-subtitle: ""
-author: Yu-Ceng Liao & David Yen-Chieh Liao
-institute: Aarhus & NCCU
+title: "DEMINOVA LAB"
+subtitle: "Meeting Report: CHile Case"
+author: David & Natalia
+institute: Department of Global Studies
 date: today
 date-format: "dddd, [the] D[<sup style='font-size:40%;font-style:italic;'></sup>] [of] MMMM, YYYY"
 embed-resources: false
@@ -13,11 +13,515 @@ format: aarhus-revealjs
 #| include: false
 sysfonts::font_add_google("Alegreya Sans", "Alegreya Sans", regular.wt = 300)
 showtext::showtext_auto()
+
+if (!require("pacman")) install.packages("pacman")
+pacman::p_load(
+  tidyverse, lubridate, dplyr, purrr, tibble,     # Tidyverse
+  tidyr, tidyr, data.table, kableExtra,           # Data Pre-processing
+  parallel, future, furrr, future.apply,          # Parallel Computing
+  doParallel, foreach, doFuture, dplyr,
+  ggplot2, ggpubr, ggrepel, wesanderson, ggraph,  # Visualization Toolkit
+  cowplot, lattice, igraph, ggforce, tidygraph,
+  tidyverse, lubridate, dplyr, purrr, tibble,     # Tidyverse Toolkit  
+  quanteda, tmcn, austin, udpipe, textrank,       # NLP toolkit
+  emIRT                                           # Generalized Wordfish
+)
+
 ```
 
-## Introduction
+```{r}
+#| include: false
+
+# read the files
+cooc_1018_dem <- read_csv("data/cooc_1018_dem.csv", show_col_types = FALSE)
+cooc_1025_dem <- read_csv("data/cooc_1025_dem.csv", show_col_types = FALSE)
+cooc_1115_dem <- read_csv("data/cooc_1115_dem.csv", show_col_types = FALSE)
+colnames(cooc_1018_dem)[3] <- "Co-Occurrence Windows"
+colnames(cooc_1025_dem)[3] <- "Co-Occurrence Windows"
+colnames(cooc_1115_dem)[3] <- "Co-Occurrence Windows"
+edge_colour_set <- c("#d4db87", "grey", "#29000f", "#29000f", "#4b0909")
+color_palette_set <- c("#DBB887", "#1380A1", "#588300",  "#e69138")
+```
+
+```{r}
+# remove the stopword in the list
+stopwordlist <- c("RT", "Rosalía", "via", "s", "es")
+cooc_1018_dem <- cooc_1018_dem[!cooc_1018_dem$term1 %in% stopwordlist | cooc_1018_dem$term2 %in% stopwordlist, ]
+
+cooc_1025_dem <- cooc_1025_dem[!cooc_1025_dem$term1 %in% stopwordlist | cooc_1025_dem$term2 %in% stopwordlist, ]
+
+cooc_1115_dem <- cooc_1115_dem[!cooc_1115_dem$term1 %in% stopwordlist | cooc_1115_dem$term2 %in% stopwordlist, ]
+```
+
+
+```{r}
+#| include: false
+# collapse date 1018
+cooc_1018_dem[cooc_1018_dem$term1 %in% c("pais", "país"),]$term1 <-"pais"
+cooc_1018_dem[cooc_1018_dem$term2 %in% c("pais", "país"), ]$term2 <-"pais"
+cooc_1018_dem[cooc_1018_dem$term1 %in% c("r3ch4z0", "rechazo", "r3ch4zo"), ]$term1 <- "rechazo" 
+cooc_1018_dem[cooc_1018_dem$term2 %in% c("r3ch4z0", "rechazo", "r3ch4zo"), ]$term2 <- "rechazo"
+# ---------------- #
+cooc_1018_dem[cooc_1018_dem$term1 %in% c("histó", "historico", "histórico"), ]$term1 <-"histó" 
+cooc_1018_dem[cooc_1018_dem$term2 %in% c("histó", "historico", "histórico"), ]$term2 <-"histó"
+# ---------------- #
+  
+cooc_1018_dem[cooc_1018_dem$term1 %in% c("chilenos", "chilenas", "chilen@s"), ]$term1 <- "chilenos" 
+cooc_1018_dem[cooc_1018_dem$term2 %in% c("chilenos", "chilenas", "chilen@s"), ]$term2  <- "chilenos" 
+cooc_1018_dem[cooc_1018_dem$term1 %in% c("sera", "será"), ]$term1 <- "sera"
+cooc_1018_dem[cooc_1018_dem$term2 %in% c("sera", "será"), ]$term2 <- "sera"
+# ---------------- #
+    
+cooc_1018_dem[cooc_1018_dem$term1 %in% c("subsidiario", "subsidiaria", "subsidiariedad"), ]$term1 <- "subsidiario"
+cooc_1018_dem[cooc_1018_dem$term2 %in% c("subsidiario", "subsidiaria", "subsidiariedad"), ]$term2 <- "subsidiario"
+# ---------------- #
+
+
+cooc_1018_dem[cooc_1018_dem$term1 %in% c("participativo", "participativa"), ]$term1<- "participativo"  
+cooc_1018_dem[cooc_1018_dem$term2 %in% c("participativo", "participativa"), ]$term2 <- "participativo" 
+
+# ---------------- #
+
+cooc_1018_dem[cooc_1018_dem$term1 %in% c("água", "agua"), ]$term1 <-"agua"
+cooc_1018_dem[cooc_1018_dem$term2 %in% c("água", "agua"), ]$term2 <- "agua"
+# ---------------- #
+  
+cooc_1018_dem[cooc_1018_dem$term1 %in% c("nuevo", "nueva"), ]$term1 <- "nuevo"
+cooc_1018_dem[cooc_1018_dem$term2 %in% c("nuevo", "nueva"), ]$term2 <- "nuevo"
+# ---------------- #
+  
+cooc_1018_dem[cooc_1018_dem$term1 %in% c("demócrata", "demócratas"), ]$term1 <- "demócratas"
+cooc_1018_dem[cooc_1018_dem$term2 %in% c("demócrata", "demócratas"), ]$term2 <- "demócratas"
+# ---------------- #
+cooc_1018_dem[cooc_1018_dem$term1 %in% c("democrática", "democráticas", "democrático", "democráticos"), ]$term1 <- "democrática"
+cooc_1018_dem[cooc_1018_dem$term2 %in% c("democrática", "democráticas", "democrático", "democráticos"), ]$term2 <- "democrática"
+# ---------------- #
+
+cooc_1018_dem[cooc_1018_dem$term1 %in% c("democratización", "democratizaciones"), ]$term1 <- "democratización"
+cooc_1018_dem[cooc_1018_dem$term2 %in% c("democratización", "democratizaciones"), ]$term2 <- "democratización"
+# ---------------- #
+  
+cooc_1018_dem[cooc_1018_dem$term1 %in% c("democratizador", "democratizadora"), ]$term1 <- "democratizador"
+cooc_1018_dem[cooc_1018_dem$term2 %in% c("democratizador", "democratizadora"), ]$term2 <- "democratizador"
+# ---------------- #
+
+cooc_1018_dem[cooc_1018_dem$term1 %in% c("democratizada", "democratizadas", "democratizado", "democratizados"), ]$term1 <- "democratizada"
+cooc_1018_dem[cooc_1018_dem$term2 %in% c("democratizada", "democratizadas", "democratizado", "democratizados"), ]$term2 <- "democratizada"
+
+# ---------------- #
+
+cooc_1018_dem[cooc_1018_dem$term1 %in% c("Derecho", "derecho", "Derechos", "derechos"), ]$term1 <- "Derecho"
+cooc_1018_dem[cooc_1018_dem$term2 %in% c("Derecho", "derecho", "Derechos", "derechos"), ]$term2 <- "Derecho"
+# ---------------- #
+
+cooc_1018_dem[cooc_1018_dem$term1 %in% c("Derecha", "Derechas", "derecha", "derechas"), ]$term1 <- "Derecha"
+cooc_1018_dem[cooc_1018_dem$term2 %in% c("Derecha", "Derechas", "derecha", "derechas"), ]$term2 <- "Derecha"
+# ---------------- #
+
+cooc_1018_dem[cooc_1018_dem$term1 %in% c("#Apruebo", "Apruebo", "#apruebo", "apruebo"), ]$term1 <- "Apruebo"
+cooc_1018_dem[cooc_1018_dem$term2 %in% c("#Apruebo", "Apruebo", "#apruebo", "apruebo"), ]$term2 <- "Apruebo"
+# ---------------- #
+
+
+cooc_1018_dem[cooc_1018_dem$term1 %in% c("AsambleaConstiyente", "#AsambleaConstiyente", "#AsambleaConstituyente", "#AsambleaConstituyente", "asambleaconstituyente", "#asambleaconstituyente"), ]$term1 <- "AsambleaConstiyente"
+cooc_1018_dem[cooc_1018_dem$term2 %in% c("AsambleaConstiyente", "#AsambleaConstiyente", "#AsambleaConstituyente", "#AsambleaConstituyente", "asambleaconstituyente", "#asambleaconstituyente"), ]$term2 <- "AsambleaConstiyente"
+
+```
+
+
+```{r}
+#| include: false
+# collapse date 1025
+cooc_1025_dem[cooc_1025_dem$term1 %in% c("pais", "país"),  "term1" ]$term1 <-"pais"
+cooc_1025_dem[cooc_1025_dem$term2 %in% c("pais", "país"), "term2" ]$term2 <-"pais"
+# ---------------- #
+cooc_1025_dem[cooc_1025_dem$term1 %in% c("r3ch4z0", "rechazo", "r3ch4zo"), ]$term1 <- "rechazo" 
+cooc_1025_dem[cooc_1025_dem$term2 %in% c("r3ch4z0", "rechazo", "r3ch4zo"), ]$term2 <- "rechazo"
+# ---------------- #
+cooc_1025_dem[cooc_1025_dem$term1 %in% c("histó", "historico", "histórico"), ]$term1 <-"histó"
+cooc_1025_dem[cooc_1025_dem$term2 %in% c("histó", "historico", "histórico"), ]$term2 <-"histó"
+# ---------------- #
+cooc_1025_dem[cooc_1025_dem$term1 %in% c("chilenos", "chilenas", "chilen@s"), ]$term1 <- "chilenos" 
+cooc_1025_dem[cooc_1025_dem$term2 %in%  c("chilenos", "chilenas", "chilen@s"), ]$term2 <- "chilenos" 
+# ---------------- #
+cooc_1025_dem[cooc_1025_dem$term1 %in% c("sera", "será"), ]$term1 <- "sera"
+cooc_1025_dem[cooc_1025_dem$term2 %in% c("sera", "será"), ]$term2 <- "sera"
+# ---------------- #
+cooc_1025_dem[cooc_1025_dem$term1 %in% c("subsidiario", "subsidiaria", "subsidiariedad"), ]$term1 <- "subsidiario"
+cooc_1025_dem[cooc_1025_dem$term2 %in% c("subsidiario", "subsidiaria", "subsidiariedad"), ]$term2 <- "subsidiario"
+# ---------------- #
+cooc_1025_dem[cooc_1025_dem$term1 %in% c("participativo", "participativa"), ]$term1 <- "participativo" 
+cooc_1025_dem[cooc_1025_dem$term2 %in% c("participativo", "participativa"), ]$term2 <- "participativo" 
+# ---------------- #
+cooc_1025_dem[cooc_1025_dem$term1 %in% c("água", "agua"), ]$term1 <- "agua"
+cooc_1025_dem[cooc_1025_dem$term2 %in% c("água", "agua"), ]$term2 <- "agua" 
+# ---------------- #
+cooc_1025_dem[cooc_1025_dem$term1 %in% c("nuevo", "nueva"), ]$term1 <- "nuevo" 
+cooc_1025_dem[cooc_1025_dem$term2 %in% c("nuevo", "nueva"), ]$term2 <- "nuevo"
+# ---------------- #
+cooc_1025_dem[cooc_1025_dem$term1 %in% c("demócrata", "demócratas"), ]$term1 <- "demócratas"
+cooc_1025_dem[cooc_1025_dem$term2 %in% c("demócrata", "demócratas"), ]$term2 <- "demócratas"
+# ---------------- #
+cooc_1025_dem[cooc_1025_dem$term1 %in% c("democrática", "democráticas", "democrático", "democráticos"), ]$term1 <- "democrática"
+cooc_1025_dem[cooc_1025_dem$term2 %in% c("democrática", "democráticas", "democrático", "democráticos"), ]$term2 <- "democrática"
+# ---------------- #
+cooc_1025_dem[cooc_1025_dem$term1 %in% c("democratización", "democratizaciones"), ]$term1 <- "democratización"
+cooc_1025_dem[cooc_1025_dem$term2 %in% c("democratización", "democratizaciones"), ]$term2 <- "democratización"
+# ---------------- #
+cooc_1025_dem[cooc_1025_dem$term1 %in% c("democratizador", "democratizadora"), ]$term1 <- "democratizador"
+cooc_1025_dem[cooc_1025_dem$term2 %in% c("democratizador", "democratizadora"), ]$term2 <- "democratizador"
+# ---------------- #
+cooc_1025_dem[cooc_1025_dem$term1 %in% c("democratizada", "democratizadas", "democratizado", "democratizados"), ]$term1 <- "democratizada"
+cooc_1025_dem[cooc_1025_dem$term2 %in% c("democratizada", "democratizadas", "democratizado", "democratizados"), ]$term2 <- "democratizada"
+# ---------------- #
+cooc_1025_dem[cooc_1025_dem$term1 %in% c("Derecho", "derecho", "Derechos", "derechos"), ]$term1 <- "Derecho"
+cooc_1025_dem[cooc_1025_dem$term2 %in% c("Derecho", "derecho", "Derechos", "derechos"), ]$term2 <- "Derecho"
+# ---------------- #
+cooc_1025_dem[cooc_1025_dem$term1 %in% c("Derecha", "Derechas", "derecha", "derechas"), ]$term1 <- "Derecha"
+cooc_1025_dem[cooc_1025_dem$term2 %in% c("Derecha", "Derechas", "derecha", "derechas"), ]$term2 <- "Derecha"
+# ---------------- #
+cooc_1025_dem[cooc_1025_dem$term1 %in% c("#Apruebo", "Apruebo", "#apruebo", "apruebo"), ]$term1 <- "Apruebo"
+cooc_1025_dem[cooc_1025_dem$term2 %in% c("#Apruebo", "Apruebo", "#apruebo", "apruebo"), ]$term2 <- "Apruebo"
+# ---------------- #
+cooc_1025_dem[cooc_1025_dem$term1 %in% c("AsambleaConstiyente", "#AsambleaConstiyente", "#AsambleaConstituyente", "#AsambleaConstituyente", "asambleaconstituyente", "#asambleaconstituyente"), ]$term1 <- "AsambleaConstiyente"
+cooc_1025_dem[cooc_1025_dem$term2 %in% c("AsambleaConstiyente", "#AsambleaConstiyente", "#AsambleaConstituyente", "#AsambleaConstituyente", "asambleaconstituyente", "#asambleaconstituyente"), ]$term2 <- "AsambleaConstiyente"
+```
+
+
+```{r}
+#| include: false
+# collapse date 1115
+cooc_1115_dem[cooc_1115_dem$term1 %in% c("pais", "país"),  "term1" ]$term1 <-"pais"
+cooc_1115_dem[cooc_1115_dem$term2 %in% c("pais", "país"), "term2" ]$term2 <-"pais"
+# ---------------- #
+cooc_1115_dem[cooc_1115_dem$term1 %in% c("r3ch4z0", "rechazo", "r3ch4zo"), ]$term1 <- "rechazo" 
+cooc_1115_dem[cooc_1115_dem$term2 %in% c("r3ch4z0", "rechazo", "r3ch4zo"), ]$term2 <- "rechazo"
+# ---------------- #
+cooc_1115_dem[cooc_1115_dem$term1 %in% c("histó", "historico", "histórico"), ]$term1 <-"histó"
+cooc_1115_dem[cooc_1115_dem$term2 %in% c("histó", "historico", "histórico"), ]$term2 <-"histó"
+# ---------------- #
+cooc_1115_dem[cooc_1115_dem$term1 %in% c("chilenos", "chilenas", "chilen@s"), ]$term1 <- "chilenos" 
+cooc_1115_dem[cooc_1115_dem$term2 %in%  c("chilenos", "chilenas", "chilen@s"), ]$term2 <- "chilenos" 
+# ---------------- #
+cooc_1115_dem[cooc_1115_dem$term1 %in% c("sera", "será"), ]$term1 <- "sera"
+cooc_1115_dem[cooc_1115_dem$term2 %in% c("sera", "será"), ]$term2 <- "sera"
+# ---------------- #
+cooc_1115_dem[cooc_1115_dem$term1 %in% c("subsidiario", "subsidiaria", "subsidiariedad"), ]$term1 <- "subsidiario"
+cooc_1115_dem[cooc_1115_dem$term2 %in% c("subsidiario", "subsidiaria", "subsidiariedad"), ]$term2 <- "subsidiario"
+# ---------------- #
+cooc_1115_dem[cooc_1115_dem$term1 %in% c("participativo", "participativa"), ]$term1 <- "participativo" 
+cooc_1115_dem[cooc_1115_dem$term2 %in% c("participativo", "participativa"), ]$term2 <- "participativo" 
+# ---------------- #
+cooc_1115_dem[cooc_1115_dem$term1 %in% c("água", "agua"), ]$term1 <- "agua"
+cooc_1115_dem[cooc_1115_dem$term2 %in% c("água", "agua"), ]$term2 <- "agua" 
+# ---------------- #
+cooc_1115_dem[cooc_1115_dem$term1 %in% c("nuevo", "nueva"), ]$term1 <- "nuevo" 
+cooc_1115_dem[cooc_1115_dem$term2 %in% c("nuevo", "nueva"), ]$term2 <- "nuevo"
+# ---------------- #
+cooc_1115_dem[cooc_1115_dem$term1 %in% c("demócrata", "demócratas"), ]$term1 <- "demócratas"
+cooc_1115_dem[cooc_1115_dem$term2 %in% c("demócrata", "demócratas"), ]$term2 <- "demócratas"
+# ---------------- #
+cooc_1115_dem[cooc_1115_dem$term1 %in% c("democrática", "democráticas", "democrático", "democráticos"), ]$term1 <- "democrática"
+cooc_1115_dem[cooc_1115_dem$term2 %in% c("democrática", "democráticas", "democrático", "democráticos"), ]$term2 <- "democrática"
+# ---------------- #
+cooc_1115_dem[cooc_1115_dem$term1 %in% c("democratización", "democratizaciones"), ]$term1 <- "democratización"
+cooc_1115_dem[cooc_1115_dem$term2 %in% c("democratización", "democratizaciones"), ]$term2 <- "democratización"
+# ---------------- #
+cooc_1115_dem[cooc_1115_dem$term1 %in% c("democratizador", "democratizadora"), ]$term1 <- "democratizador"
+cooc_1115_dem[cooc_1115_dem$term2 %in% c("democratizador", "democratizadora"), ]$term2 <- "democratizador"
+# ---------------- #
+cooc_1115_dem[cooc_1115_dem$term1 %in% c("democratizada", "democratizadas", "democratizado", "democratizados"), ]$term1 <- "democratizada"
+cooc_1115_dem[cooc_1115_dem$term2 %in% c("democratizada", "democratizadas", "democratizado", "democratizados"), ]$term2 <- "democratizada"
+# ---------------- #
+cooc_1115_dem[cooc_1115_dem$term1 %in% c("Derecho", "derecho", "Derechos", "derechos"), ]$term1 <- "Derecho"
+cooc_1115_dem[cooc_1115_dem$term2 %in% c("Derecho", "derecho", "Derechos", "derechos"), ]$term2 <- "Derecho"
+# ---------------- #
+cooc_1115_dem[cooc_1115_dem$term1 %in% c("Derecha", "Derechas", "derecha", "derechas"), ]$term1 <- "Derecha"
+cooc_1115_dem[cooc_1115_dem$term2 %in% c("Derecha", "Derechas", "derecha", "derechas"), ]$term2 <- "Derecha"
+# ---------------- #
+cooc_1115_dem[cooc_1115_dem$term1 %in% c("#Apruebo", "Apruebo", "#apruebo", "apruebo"), ]$term1 <- "Apruebo"
+cooc_1115_dem[cooc_1115_dem$term2 %in% c("#Apruebo", "Apruebo", "#apruebo", "apruebo"), ]$term2 <- "Apruebo"
+# ---------------- #
+cooc_1115_dem[cooc_1115_dem$term1 %in% c("AsambleaConstiyente", "#AsambleaConstiyente", "#AsambleaConstituyente", "#AsambleaConstituyente", "asambleaconstituyente", "#asambleaconstituyente"), ]$term1 <- "AsambleaConstiyente"
+cooc_1115_dem[cooc_1115_dem$term2 %in% c("AsambleaConstiyente", "#AsambleaConstiyente", "#AsambleaConstituyente", "#AsambleaConstituyente", "asambleaconstituyente", "#asambleaconstituyente"), ]$term2 <- "AsambleaConstiyente"
+```
+
+## Agenda
+
+- Key Dates in the Social Movement of Chilean Mobilizations
+
+- Constructing a Co-occurrence Network Based on the Word 'Democracy' in a Text Corpus
+
+- Merging Synonyms
+
+- Visualizing Co-occurrence Frequency with Network Analysis
+
+
+## Key dates for Chilean Mobilizations
+
+- Completed: _18 Oct 2019 (17 Oct 12:00 - 19 Oct 12:00)_, _25 Oct 2019 (24 Oct 12:00 - 26 Oct 12:00)_ and _15 Nov 2019 (14 Nov 12:00 - 16 Nov 12:00)_
+
+- Processing: _31 Sep to 2 Oct 2019 (31 Sep 12:00 - 3 Oct  12:00)_, _25 Oct 2020 (24 Oct 12:00 - 26 Oct 12:00)_, _14 May 2021 to 16 May 2021 (13 Oct 12:00 - 17 Oct 12:00)_,  and _3 Sep to 5 Sep 2022 (2 Oct 12:00 - 6 Oct 12:00)_
+
+
+## Words Related to __“Democracy”__ Starting with Democ***
+
+- Word Selection: democracia, demócrata, demócratas, democrática,democráticas, democrático, democráticos, 
+democráticamente, democratización, democratizaciones, democratizador, democratizadora,
+democratizar, democratizada, democratizadas, democratizado, and democratizados.
+
+- Removal Stopword: RT, Rosalía (a singer), via, s, es
 
 
 
+## Merging Synonyms
 
-### Subtitle
+- [rechazo, r3ch4z0],  [pais, país], [histó, historico, histórico], [chilenos, chilenas, chilen@s], [sera, será], [subsidiario, subsidiaria, subsidiariedad], [participativo, participativa]
+
+- [água, agua], [nuevo, nueva], [demócrata,  demócratas], [democrática, democráticas, democrático, democráticos], [democratización, democratizaciones]
+
+##
+
+- [democratizador,  democratizadora], [democratizada,  democratizadas, democratizado, democratizados], [Derecho, derecho, Derechos,  derechos]
+
+- [Derecha, Derechas, derecha, derechas], [#Apruebo,  Apruebo,  #apruebo, apruebo], [AsambleaConstiyente, #AsambleaConstiyente, AsambleaConstituyente, #AsambleaConstituyente, asambleaconstituyente, #asambleaconstituyente]
+ 
+## Tokenization in Pre-trained Model
+
+```{r}
+#| include: false
+tokenized_dataframe <- read_csv("data/tokened_df_1018_dem.csv", show_col_types = FALSE)
+```
+
+```{r  fig.width=3, fig.height=4}
+#| include: true
+options(scipen = 99999)
+tokenized_dataframe[c("doc_id", "sentence","token","token_id", "upos")]|>
+  head(n=15) |>
+  kbl() |>
+  kable_styling(font_size = 16)
+```
+
+
+## Visualizing Co-occurrence Frequency with Network Analysis
+
+- Top 7 - Last 7
+
+- Comparison:  _1 to 100_, _200 to 500_, _700 to 800_
+
+- Dates: _18 Oct 2019_, _25 Oct 2019_ and _15 Nov 2019_
+
+
+# Event 1: ___18 Oct 2019___
+
+- Data Frame: Top 20 Co-occurrence
+
+- Co-occurrence Network: ___18 Oct 2019 Between 1 and 200___, ___18 Oct 2019 between 200 and 500___, ___18 Oct 2019 between 700 and 800___
+
+## 18 Oct 2019 Top 20
+```{r}
+cooc_1018_dem[1:200,] |>
+  head(n=20) |>
+  kbl() |>
+  kable_styling(font_size = 16)
+```
+
+
+## 18 Oct 2019 Between Top 1 and 200
+```{r}
+cooc_1018_dem[1:100,] |>
+  igraph::graph_from_data_frame() |>
+  ggraph::ggraph( layout = "kk") +
+  ggraph::geom_edge_link(aes(width = `Co-Occurrence Windows`,edge_alpha = `Co-Occurrence Windows`), 
+                         edge_colour = edge_colour_set[[4]],  alpha = 0.2) +
+  # ggraph::geom_node_point(size = 15, shape =15, color = color_palette_set[[2]] , alpha = 0.8) +
+  # ggraph::geom_node_point(size = 19, shape =22, color = "black") +
+  ggraph::geom_node_text(aes(label = name), 
+                         size = 4, 
+                         repel = TRUE,
+                         col = edge_colour_set[[3]], fontface = "bold") +
+  ggraph::theme_graph(base_family = "Arial Narrow") +
+  ggplot2::labs(title = "", subtitle = "") +
+  ggplot2::theme_void() +
+  ggplot2::theme(legend.key.size = unit(4.5, "cm"),  
+                 legend.key.height = unit(4.5, "cm"),  
+                 legend.key.width = unit(4.5, "cm"),  
+                 legend.title = element_text(size=10), 
+                 legend.text = element_text(size=22)) +
+  guides(shape = guide_legend(override.aes = list(size = 1))) +
+  theme(legend.title = element_text(size = 15), 
+        legend.text = element_text(size = 8)) +  
+  ggtitle("18 Oct 2019 between 1 and 200") +
+  theme(plot.title = element_text(size = 20, face = "bold", hjust = 0.5, vjust = 0.5))
+
+
+```
+
+## 18 Oct 2019 between 201 and 500
+```{r}
+cooc_1018_dem[200:500,] |>
+  igraph::graph_from_data_frame() |>
+  ggraph::ggraph( layout = "kk") +
+  ggraph::geom_edge_link(aes(width = `Co-Occurrence Windows`,edge_alpha = `Co-Occurrence Windows`), 
+                         edge_colour = edge_colour_set[[2]]) +
+  # ggraph::geom_node_point(size = 15, shape =15, color = color_palette_set[[2]] , alpha = 0.8) +
+  # ggraph::geom_node_point(size = 19, shape =22, color = "black") +
+  ggraph::geom_node_text(aes(label = name), 
+                         size = 4, 
+                         repel = TRUE,
+                         col = edge_colour_set[[3]], fontface = "bold") +
+  ggraph::theme_graph(base_family = "Arial Narrow") +
+  ggplot2::labs(title = "", subtitle = "") +
+  ggplot2::theme_void() +
+  ggplot2::theme(legend.key.size = unit(4.5, "cm"),  
+                 legend.key.height = unit(4.5, "cm"),  
+                 legend.key.width = unit(4.5, "cm"),  
+                 legend.title = element_text(size=10), 
+                 legend.text = element_text(size=22)) +
+  guides(shape = guide_legend(override.aes = list(size = 1))) +
+  theme(legend.title = element_text(size = 15), 
+        legend.text = element_text(size = 8)) +  
+  ggtitle("18 Oct 2019 between 200 and 500") +
+  theme(plot.title = element_text(size = 20, face = "bold", hjust = 0.5, vjust = 0.5))
+```
+
+# Event 2: 25 Oct 2019
+
+- Data Frame: Top 20 Co-occurrence
+
+- Co-occurrence Network: ___25 Oct 2019 Between 1 and 200___, ___25 Oct 2019 between 200 and 500___, ___18 Oct 2019 between 700 and 800___
+
+## 25 Oct 2019 Top 20
+```{r}
+cooc_1025_dem[1:200,] |>
+  head(n=20) |>
+  kbl() |>
+  kable_styling(font_size = 16)
+```
+
+## 25 Oct 2019 between 1 and 200
+```{r}
+cooc_1025_dem[1:200,] |>
+  igraph::graph_from_data_frame() |>
+  ggraph::ggraph( layout = "kk") +
+  ggraph::geom_edge_link(aes(width = `Co-Occurrence Windows`,edge_alpha = `Co-Occurrence Windows`), 
+                         edge_colour = edge_colour_set[[2]]) +
+  # ggraph::geom_node_point(size = 15, shape =15, color = color_palette_set[[2]] , alpha = 0.8) +
+  # ggraph::geom_node_point(size = 19, shape =22, color = "black") +
+  ggraph::geom_node_text(aes(label = name), 
+                         size = 4, 
+                         repel = TRUE,
+                         col = edge_colour_set[[3]], fontface = "bold") +
+  ggraph::theme_graph(base_family = "Arial Narrow") +
+  ggplot2::labs(title = "", subtitle = "") +
+  ggplot2::theme_void() +
+  ggplot2::theme(legend.key.size = unit(4.5, "cm"),  
+                 legend.key.height = unit(4.5, "cm"),  
+                 legend.key.width = unit(4.5, "cm"),  
+                 legend.title = element_text(size=10), 
+                 legend.text = element_text(size=22)) +
+  guides(shape = guide_legend(override.aes = list(size = 1))) +
+  theme(legend.title = element_text(size = 15), 
+        legend.text = element_text(size = 8)) +  
+  ggtitle("25 Oct 2019 between 1 and 200") +
+  theme(plot.title = element_text(size = 20, face = "bold", hjust = 0.5, vjust = 0.5))
+```
+
+## 25 Oct 2019 between 201 and 500
+```{r}
+cooc_1025_dem[201:500,] |>
+  igraph::graph_from_data_frame() |>
+  ggraph::ggraph( layout = "kk") +
+  ggraph::geom_edge_link(aes(width = `Co-Occurrence Windows`,edge_alpha = `Co-Occurrence Windows`), 
+                         edge_colour = edge_colour_set[[2]]) +
+  # ggraph::geom_node_point(size = 15, shape =15, color = color_palette_set[[2]] , alpha = 0.8) +
+  # ggraph::geom_node_point(size = 19, shape =22, color = "black") +
+  ggraph::geom_node_text(aes(label = name), 
+                         size = 4, 
+                         repel = TRUE,
+                         col = edge_colour_set[[3]], fontface = "bold") +
+  ggraph::theme_graph(base_family = "Arial Narrow") +
+  ggplot2::labs(title = "", subtitle = "") +
+  ggplot2::theme_void() +
+  ggplot2::theme(legend.key.size = unit(4.5, "cm"),  
+                 legend.key.height = unit(4.5, "cm"),  
+                 legend.key.width = unit(4.5, "cm"),  
+                 legend.title = element_text(size=10), 
+                 legend.text = element_text(size=22)) +
+  guides(shape = guide_legend(override.aes = list(size = 1))) +
+  theme(legend.title = element_text(size = 15), 
+        legend.text = element_text(size = 8)) +  
+  ggtitle("25 Oct 2019 between 201 and 500") +
+  theme(plot.title = element_text(size = 20, face = "bold", hjust = 0.5, vjust = 0.5))
+```
+
+# Event 3: 15 Nov 2019
+
+- Data Frame: Top 20 Co-occurrence
+
+- Co-occurrence Network: ___15 Nov 2019 Between 1 and 200___; ___15 Nov 2019 between 200 and 500___, ___15 Nov 2019 between 700 and 800___
+
+## 15 Nov 2019 Top 20
+```{r}
+cooc_1115_dem[1:200,] |>
+  head(n=20) |>
+  kbl() |>
+  kable_styling(font_size = 16)
+```
+
+## 15 Nov 2019 between 1 and 200
+```{r}
+cooc_1115_dem[1:200,] |>
+  igraph::graph_from_data_frame() |>
+  ggraph::ggraph( layout = "kk") +
+  ggraph::geom_edge_link(aes(width = `Co-Occurrence Windows`,edge_alpha = `Co-Occurrence Windows`), 
+                         edge_colour = edge_colour_set[[2]]) +
+  # ggraph::geom_node_point(size = 15, shape =15, color = color_palette_set[[2]] , alpha = 0.8) +
+  # ggraph::geom_node_point(size = 19, shape =22, color = "black") +
+  ggraph::geom_node_text(aes(label = name), 
+                         size = 4, 
+                         repel = TRUE,
+                         col = edge_colour_set[[3]], fontface = "bold") +
+  ggraph::theme_graph(base_family = "Arial Narrow") +
+  ggplot2::labs(title = "", subtitle = "") +
+  ggplot2::theme_void() +
+  ggplot2::theme(legend.key.size = unit(4.5, "cm"),  
+                 legend.key.height = unit(4.5, "cm"),  
+                 legend.key.width = unit(4.5, "cm"),  
+                 legend.title = element_text(size=10), 
+                 legend.text = element_text(size=22)) +
+  guides(shape = guide_legend(override.aes = list(size = 1))) +
+  theme(legend.title = element_text(size = 15), 
+        legend.text = element_text(size = 8)) +  
+  ggtitle("15 Nov 2019 between 1 and 200") +
+  theme(plot.title = element_text(size = 20, face = "bold", hjust = 0.5, vjust = 0.5))
+```
+
+## 15 Nov 2019 between 201 and 500
+```{r}
+cooc_1115_dem[200:500,] |>
+  igraph::graph_from_data_frame() |>
+  ggraph::ggraph( layout = "kk") +
+  ggraph::geom_edge_link(aes(width = `Co-Occurrence Windows`,edge_alpha = `Co-Occurrence Windows`), 
+                         edge_colour = edge_colour_set[[2]]) +
+  # ggraph::geom_node_point(size = 15, shape =15, color = color_palette_set[[2]] , alpha = 0.8) +
+  # ggraph::geom_node_point(size = 19, shape =22, color = "black") +
+  ggraph::geom_node_text(aes(label = name), 
+                         size = 4, 
+                         repel = TRUE,
+                         col = edge_colour_set[[3]], fontface = "bold") +
+  ggraph::theme_graph(base_family = "Arial Narrow") +
+  ggplot2::labs(title = "", subtitle = "") +
+  ggplot2::theme_void() +
+  ggplot2::theme(legend.key.size = unit(4.5, "cm"),  
+                 legend.key.height = unit(4.5, "cm"),  
+                 legend.key.width = unit(4.5, "cm"),  
+                 legend.title = element_text(size=10), 
+                 legend.text = element_text(size=22)) +
+  guides(shape = guide_legend(override.aes = list(size = 1))) +
+  theme(legend.title = element_text(size = 15), 
+        legend.text = element_text(size = 8)) +  
+  ggtitle("15 Nov 2019 between 200 and 400") +
+  theme(plot.title = element_text(size = 20, face = "bold", hjust = 0.5, vjust = 0.5))
+```
+
