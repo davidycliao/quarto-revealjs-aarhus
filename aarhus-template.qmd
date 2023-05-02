@@ -381,14 +381,14 @@ tokened_event1|>
 
 - Top 30
 
-- Comparison:  _Top 20 at frequency_ and _Top 30 at Co-occurrenceplot__
+- Comparison:  _Top 20 at frequency_ and _Top 30 at Co-occurrenceplot_
 
 - Dates: _18 Oct 2019_, _25 Oct 2019_ and _15 Nov 2019_
 
 
 # Event 1: ___18 Oct 2019___
 
-- Data Frame: Top 20 Co-occurrence
+- Dataframe: Top 20 Co-occurrence
 
 - Co-occurrence Network: ___18 Oct 2019 Between 1 and 200___
 
@@ -425,7 +425,7 @@ cooc_event1[1:30,] |>
   guides(shape = guide_legend(override.aes = list(size = 1))) +
   theme(legend.title = element_text(size = 15), 
         legend.text = element_text(size = 8)) +  
-  ggtitle("18 Oct 2019 between 1 and 200") +
+  ggtitle("18 Oct 2019 between 1 and 30") +
   theme(plot.title = element_text(size = 20, face = "bold", hjust = 0.5, vjust = 0.5))
 
 
@@ -434,7 +434,7 @@ cooc_event1[1:30,] |>
 
 # Event 2: 25 Oct 2019
 
-- Data Frame: Top 20 Co-occurrence
+- Dataframe: Top 20 Co-occurrence
 
 - Co-occurrence Network: ___25 Oct 2019 Between 1 and 30___
 
@@ -470,14 +470,14 @@ cooc_event2[1:30,] |>
   guides(shape = guide_legend(override.aes = list(size = 1))) +
   theme(legend.title = element_text(size = 15), 
         legend.text = element_text(size = 8)) +  
-  ggtitle("25 Oct 2019 between 1 and 200") +
+  ggtitle("25 Oct 2019 between 1 and 30") +
   theme(plot.title = element_text(size = 20, face = "bold", hjust = 0.5, vjust = 0.5))
 ```
 
 
 # Event 3: 15 Nov 2019
 
-- Data Frame: Top 20 Co-occurrence
+- Dataframe: Top 20 Co-occurrence
 
 - Co-occurrence Network: ___15 Nov 2019 Between 1 and 30___
 
@@ -513,7 +513,7 @@ cooc_event3[1:30,] |>
   guides(shape = guide_legend(override.aes = list(size = 1))) +
   theme(legend.title = element_text(size = 15), 
         legend.text = element_text(size = 8)) +  
-  ggtitle("15 Nov 2019 between 1 and 200") +
+  ggtitle("15 Nov 2019 between 1 and 30") +
   theme(plot.title = element_text(size = 20, face = "bold", hjust = 0.5, vjust = 0.5))
 ```
 
