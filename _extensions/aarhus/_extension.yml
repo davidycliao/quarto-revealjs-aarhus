@@ -9,9 +9,7 @@ contributes:
       highlight-style: github-dark
       theme: aarhus.scss
       footer: |
-        <a href="https://projects.au.dk/deminova-lab/about-deminova">DEPARTMENT OF GLOBAL STUDIES</a>
-        |
-        <a href="https://davidycliao.github.io">DEMONOVA LAB</a>
+        <a href="https://davidycliao.github.io">DEMINOVA LAB</a>
         |
         <a href="https://projects.au.dk/deminova-lab/about-deminova">AARHUS UNIVERSITY</a>   
       logo: aarhus.png
